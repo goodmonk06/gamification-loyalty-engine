@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: gamification-db
@@ -17,7 +18,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - gamification-network
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: gamification-redis
@@ -30,7 +34,52 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - gamification-network
+
+  # Backend API (NestJS)
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: gamification-backend
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://gamification:gamification_pass@postgres:5432/gamification_loyalty?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 3000
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - gamification-network
+    restart: unless-stopped
+
+  # Admin UI (Next.js)
+  admin:
+    build:
+      context: .
+      dockerfile: admin/Dockerfile
+    container_name: gamification-admin
+    ports:
+      - '3001:3001'
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+    depends_on:
+      - backend
+    networks:
+      - gamification-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  gamification-network:
+    driver: bridge

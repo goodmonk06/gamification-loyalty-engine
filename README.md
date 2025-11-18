@@ -1,44 +1,79 @@
 # 🎮 Gamification & Loyalty Engine
 
-A powerful, centralized gamification and loyalty system that any application can integrate to provide:
-- **Points System** - Award points for user actions
-- **Badges** - Unlock achievements based on criteria
-- **Levels** - Progress through levels as points accumulate
-- **Loyalty Tiers** - Bronze, Silver, Gold, Platinum tiers
+A production-ready, centralized gamification and loyalty platform that enables any application to implement points, badges, levels, and tier systems through a simple REST API.
 
-## 🏗️ Architecture
+## 📋 Overview
+
+This engine provides a complete gamification infrastructure that can be integrated into multiple applications (marketplaces, learning platforms, community apps, etc.) to deliver engaging user experiences through:
+
+- **Points System** - Award and track points for user actions with configurable rules and multipliers
+- **Badge System** - Define and automatically grant achievement badges based on criteria
+- **Level Progression** - Automatic leveling based on points thresholds
+- **Loyalty Tiers** - Bronze, Silver, Gold, Platinum tiers with customizable requirements
+- **Multi-tenancy** - Isolated programs for each application with independent configurations
+- **Real-time Processing** - Immediate point calculation and badge granting
+- **Admin Dashboard** - Full-featured UI for managing programs, events, badges, and users
+
+## 🏗️ Tech Stack
+
+### Backend
+- **NestJS** - Modern TypeScript framework
+- **Prisma** - Type-safe ORM with PostgreSQL
+- **Redis** - High-performance caching layer
+- **Swagger** - Auto-generated API documentation
+- **Jest** - Comprehensive testing framework
+
+### Admin UI
+- **Next.js 14** - React framework with App Router
+- **TypeScript** - End-to-end type safety
+- **Tailwind CSS** - Utility-first styling
+- **Axios** - HTTP client
+
+### Infrastructure
+- **Docker & Docker Compose** - Containerized deployment
+- **PostgreSQL 15** - Relational database
+- **Redis 7** - In-memory cache
+
+## 📊 Domain Model
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  Your Applications                       │
-│  (marketplace, learning-platform, guild-platform, etc)  │
-└────────────────┬────────────────────────────────────────┘
-                 │ HTTP API Calls
-                 ▼
-┌─────────────────────────────────────────────────────────┐
-│          Gamification & Loyalty Engine (NestJS)         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ Rules Engine │  │ Points Mgmt  │  │ Badge System │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
-└─────────┬───────────────────────────────────┬───────────┘
-          │                                   │
-          ▼                                   ▼
-    ┌──────────┐                         ┌────────┐
-    │PostgreSQL│                         │ Redis  │
-    └──────────┘                         └────────┘
+Program (Gamification Instance)
+  ├── EventDefinitions (purchase, login, referral, etc.)
+  ├── BadgeDefinitions (achievements with criteria)
+  ├── UserAccounts (user progress within program)
+  │     ├── points (total points earned)
+  │     ├── level (1-5+ based on thresholds)
+  │     ├── tier (bronze/silver/gold/platinum)
+  │     └── UserBadges (earned achievements)
+  └── EarnEvents (history of all point-earning actions)
 ```
 
-## 🚀 Quick Start
+### Core Entities
+
+- **Program**: Isolated gamification instance per application
+- **UserAccount**: User's progress within a program (points, level, tier)
+- **EventDefinition**: Rules for point-earning events
+- **EarnEvent**: Historical record of points earned
+- **BadgeDefinition**: Achievement criteria and metadata
+- **UserBadge**: Badge earned by a user
+
+### Key Relationships
+
+- One Program has many UserAccounts, EventDefinitions, and BadgeDefinitions
+- One UserAccount has many EarnEvents and UserBadges
+- Badge granting is automatic based on criteria evaluation
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- Docker & Docker Compose
-- npm or yarn
+- **Node.js** 18+ and npm
+- **Docker** and Docker Compose
+- **Git**
 
-### Installation
+### Quick Start (Development)
 
-1. **Clone and install dependencies:**
+1. **Clone and install dependencies**
 
 ```bash
 git clone <repository-url>
@@ -46,389 +81,339 @@ cd gamification-loyalty-engine
 npm install
 ```
 
-2. **Start databases:**
+2. **Start databases**
 
 ```bash
 npm run docker:up
 ```
 
-This starts PostgreSQL (port 5432) and Redis (port 6379).
+This starts PostgreSQL on port 5432 and Redis on port 6379.
 
-3. **Set up the backend:**
+3. **Set up the backend**
 
+```bash
+# Generate Prisma client
+cd backend
+npm run prisma:generate
+
+# Run migrations
+npm run db:migrate
+
+# Seed demo data
+npm run db:seed
+```
+
+4. **Start development servers**
+
+```bash
+# Terminal 1: Backend API
+cd backend
+npm run dev
+
+# Terminal 2: Admin UI
+cd admin
+npm run dev
+```
+
+5. **Access the applications**
+
+- **Backend API**: http://localhost:3000
+- **API Documentation**: http://localhost:3000/api/docs
+- **Admin Dashboard**: http://localhost:3001
+
+### Quick Start (Docker - Full Stack)
+
+```bash
+# Build and start all services
+docker-compose up -d
+
+# Run migrations inside container
+docker exec gamification-backend npx prisma migrate deploy
+
+# Seed demo data
+docker exec gamification-backend npm run db:seed
+
+# View logs
+docker-compose logs -f
+```
+
+Access:
+- **Backend API**: http://localhost:3000
+- **Admin Dashboard**: http://localhost:3001
+
+## 🎯 Example Flow (Vertical Slice)
+
+This implementation includes a complete, working vertical slice demonstrating all core functionality:
+
+### Demo Program: `demo-rewards`
+
+**Event Definitions:**
+- `purchase` - 10 base points (1.5x for orders > $100, 2x for orders > $500)
+- `referral` - 50 points
+- `daily_login` - 5 points
+
+**Badge Definitions:**
+- `first_purchase` - Complete 1 purchase
+- `points_100` - Reach 100 total points
+- `super_referrer` - Complete 5 referrals
+
+**Demo Users:**
+- `demo_user_1` - 150 points, Level 2, Bronze tier
+- `demo_user_2` - 620 points, Level 4, Silver tier
+- `demo_user_3` - 1800 points, Level 5, Gold tier
+
+### Testing the Vertical Slice
+
+#### 1. View Demo User Data
+
+```bash
+curl http://localhost:3000/users/demo-rewards/demo_user_1 | jq
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "clx...",
+    "externalUserId": "demo_user_1",
+    "points": 150,
+    "level": 2,
+    "tier": "bronze",
+    "badges": [
+      {
+        "key": "first_purchase",
+        "name": "First Purchase",
+        "description": "Made your first purchase",
+        "grantedAt": "2024-01-15T10:30:00Z"
+      },
+      {
+        "key": "points_100",
+        "name": "100 Points",
+        "description": "Earned 100 points",
+        "grantedAt": "2024-01-15T10:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+#### 2. Create a New Event
+
+```bash
+curl -X POST http://localhost:3000/events/ingest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "programKey": "demo-rewards",
+    "externalUserId": "demo_user_1",
+    "eventKey": "purchase",
+    "meta": {
+      "amount": 150,
+      "orderId": "order_12345"
+    }
+  }' | jq
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "result": {
+    "userAccountId": "clx...",
+    "pointsEarned": 15,
+    "totalPoints": 165,
+    "previousLevel": 2,
+    "newLevel": 2,
+    "leveledUp": false,
+    "previousTier": "bronze",
+    "newTier": "bronze",
+    "tierChanged": false,
+    "badgesGranted": []
+  }
+}
+```
+
+#### 3. List All Users (Leaderboard)
+
+```bash
+curl http://localhost:3000/users/demo-rewards/list | jq
+```
+
+#### 4. View Program Configuration
+
+```bash
+curl http://localhost:3000/programs/demo-rewards | jq
+```
+
+#### 5. Use Admin UI
+
+1. Open http://localhost:3001
+2. Click on "Demo Rewards Program"
+3. View:
+   - **Events tab**: See all event definitions
+   - **Badges tab**: See all badge definitions with earn counts
+   - **Users tab**: See leaderboard with points, levels, and tiers
+4. Create a new event or badge to see the system in action
+
+### End-to-End Flow Demo
+
+```bash
+# 1. Create a new user by triggering an event
+curl -X POST http://localhost:3000/events/ingest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "programKey": "demo-rewards",
+    "externalUserId": "new_user_123",
+    "eventKey": "purchase",
+    "meta": { "amount": 50 }
+  }'
+
+# 2. Check the user was created with points
+curl http://localhost:3000/users/demo-rewards/new_user_123
+
+# 3. Trigger more events to earn a badge
+for i in {1..5}; do
+  curl -X POST http://localhost:3000/events/ingest \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"programKey\": \"demo-rewards\",
+      \"externalUserId\": \"new_user_123\",
+      \"eventKey\": \"daily_login\",
+      \"meta\": {}
+    }"
+done
+
+# 4. View updated user with badges
+curl http://localhost:3000/users/demo-rewards/new_user_123
+
+# 5. Check event history
+curl "http://localhost:3000/users/demo-rewards/new_user_123/history?limit=10"
+```
+
+## 🔧 Development
+
+### Available Scripts
+
+**Root level:**
+```bash
+npm run dev              # Start databases + backend
+npm run build            # Build all packages
+npm run test             # Run all tests
+npm run lint             # Lint all packages
+npm run db:migrate       # Run database migrations
+npm run db:seed          # Seed demo data
+npm run docker:up        # Start databases
+npm run docker:down      # Stop databases
+npm run prisma:studio    # Open Prisma Studio
+```
+
+**Backend:**
 ```bash
 cd backend
-cp .env.example .env
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:seed
+npm run dev              # Start with hot reload
+npm run build            # Build for production
+npm run start:prod       # Start production build
+npm run test             # Run tests
+npm run test:watch       # Run tests in watch mode
+npm run test:cov         # Run tests with coverage
+npm run lint             # Lint and auto-fix
+npm run db:migrate       # Run migrations
+npm run db:seed          # Seed data
+npm run prisma:studio    # Database GUI
 ```
 
-4. **Start the backend:**
-
-```bash
-npm run dev
-```
-
-Backend runs on http://localhost:3000
-API Docs: http://localhost:3000/api/docs
-
-5. **Start the admin UI:**
-
+**Admin:**
 ```bash
 cd admin
-cp .env.local.example .env.local
-npm run dev
+npm run dev              # Start with hot reload
+npm run build            # Build for production
+npm run start            # Start production build
+npm run lint             # Lint code
+npm run type-check       # Type check without emit
 ```
 
-Admin UI runs on http://localhost:3001
+### Database Migrations
 
-## 📚 Core Concepts
+```bash
+# Create a new migration
+cd backend
+npx prisma migrate dev --name migration_name
 
-### Programs
+# Apply migrations to production
+npx prisma migrate deploy
 
-A **Program** is an isolated gamification instance. Each application can have its own program:
-- `marketplace-rewards` - For your marketplace app
-- `learning-camp-xp` - For your learning platform
-- `guild-achievements` - For your guild platform
-
-### Event Definitions
-
-**Events** are actions users take that earn points. Examples:
-- `purchase` - User makes a purchase (10 points)
-- `course_completed` - User completes a course (50 points)
-- `daily_login` - User logs in (5 points)
-- `post_created` - User creates a post (15 points)
-
-### Badge Definitions
-
-**Badges** are achievements users unlock. Criteria types:
-- `event_count` - Trigger an event N times (e.g., "5 purchases")
-- `total_points` - Reach a points threshold (e.g., "1000 points")
-
-### User Accounts
-
-Each user in your app gets a **UserAccount** per program with:
-- `points` - Total points earned
-- `level` - Current level (1-5+ based on points)
-- `tier` - Loyalty tier (bronze/silver/gold/platinum)
-- `badges` - Array of earned badges
-
-## 🔌 Integration Examples
-
-### Example 1: Marketplace Integration
-
-```typescript
-// marketplace-backend/src/services/gamification.service.ts
-import axios from 'axios';
-
-const GAMIFICATION_API = 'http://localhost:3000';
-const PROGRAM_KEY = 'marketplace-rewards';
-
-export class GamificationService {
-  async trackPurchase(userId: string, orderAmount: number) {
-    try {
-      const response = await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-        programKey: PROGRAM_KEY,
-        externalUserId: userId,
-        eventKey: 'purchase',
-        meta: {
-          amount: orderAmount,
-        },
-      });
-
-      const result = response.data.result;
-
-      // Notify user if they leveled up or earned badges
-      if (result.leveledUp) {
-        await this.notifyUser(userId, `Congrats! You reached level ${result.newLevel}!`);
-      }
-
-      if (result.badgesGranted.length > 0) {
-        for (const badge of result.badgesGranted) {
-          await this.notifyUser(userId, `You earned the "${badge.badgeName}" badge! 🏆`);
-        }
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Failed to track purchase:', error);
-    }
-  }
-
-  async trackProductReview(userId: string) {
-    await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-      programKey: PROGRAM_KEY,
-      externalUserId: userId,
-      eventKey: 'product_review',
-      meta: {},
-    });
-  }
-
-  async trackReferral(referrerId: string, newUserId: string) {
-    await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-      programKey: PROGRAM_KEY,
-      externalUserId: referrerId,
-      eventKey: 'referral',
-      meta: {
-        referredUser: newUserId,
-      },
-    });
-  }
-
-  async getUserStats(userId: string) {
-    const response = await axios.get(
-      `${GAMIFICATION_API}/users/${PROGRAM_KEY}/${userId}`
-    );
-    return response.data;
-  }
-}
+# Reset database (development only)
+npm run db:reset
 ```
 
-**Usage in your marketplace:**
+### Running Tests
 
-```typescript
-// When a user completes a purchase
-await gamificationService.trackPurchase(user.id, order.totalAmount);
+```bash
+# Run all tests
+npm test
 
-// When a user reviews a product
-await gamificationService.trackProductReview(user.id);
+# Run tests in watch mode
+npm run test:watch
 
-// Display user's loyalty status
-const userStats = await gamificationService.getUserStats(user.id);
-console.log(`${user.name} has ${userStats.points} points (${userStats.tier} tier)`);
+# Run tests with coverage
+npm run test:cov
+
+# Run specific test file
+cd backend
+npx jest rules-engine.service.spec.ts
 ```
 
-### Example 2: Learning Platform Integration
+### Linting and Formatting
 
-```typescript
-// async-learning-camp-platform/src/lib/gamification.ts
-import axios from 'axios';
+```bash
+# Lint all packages
+npm run lint
 
-const GAMIFICATION_API = 'http://localhost:3000';
-const PROGRAM_KEY = 'learning-camp-xp';
-
-export async function trackCourseCompletion(
-  studentId: string,
-  courseId: string,
-  courseDifficulty: 'beginner' | 'intermediate' | 'advanced'
-) {
-  const response = await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-    programKey: PROGRAM_KEY,
-    externalUserId: studentId,
-    eventKey: 'course_completed',
-    meta: {
-      courseId,
-      difficulty: courseDifficulty,
-    },
-  });
-
-  return response.data.result;
-}
-
-export async function trackQuizPass(studentId: string, quizScore: number) {
-  await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-    programKey: PROGRAM_KEY,
-    externalUserId: studentId,
-    eventKey: 'quiz_passed',
-    meta: {
-      score: quizScore,
-    },
-  });
-}
-
-export async function trackDailyLogin(studentId: string) {
-  await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-    programKey: PROGRAM_KEY,
-    externalUserId: studentId,
-    eventKey: 'daily_login',
-    meta: {
-      timestamp: new Date().toISOString(),
-    },
-  });
-}
-
-export async function getStudentProgress(studentId: string) {
-  const response = await axios.get(
-    `${GAMIFICATION_API}/users/${PROGRAM_KEY}/${studentId}`
-  );
-
-  return {
-    xp: response.data.points,
-    level: response.data.level,
-    badges: response.data.badges,
-    tier: response.data.tier,
-  };
-}
-
-export async function getLeaderboard() {
-  const response = await axios.get(
-    `${GAMIFICATION_API}/users/${PROGRAM_KEY}/list?limit=100`
-  );
-
-  return response.data.users.map((user: any) => ({
-    studentId: user.externalUserId,
-    xp: user.points,
-    level: user.level,
-    badges: user.badgeCount,
-  }));
-}
+# Format backend code
+cd backend
+npm run format
 ```
 
-**React Component Example:**
+## 🧪 Testing
 
-```typescript
-// async-learning-camp-platform/src/components/StudentProfile.tsx
-import { useEffect, useState } from 'react';
-import { getStudentProgress } from '@/lib/gamification';
+The backend includes comprehensive unit tests for core business logic:
 
-export function StudentProfile({ studentId }: { studentId: string }) {
-  const [progress, setProgress] = useState(null);
+- **Rules Engine Tests** (`rules-engine.service.spec.ts`)
+  - Basic point calculation
+  - Level progression
+  - Tier changes
+  - Point multipliers based on conditions
+  - Automatic badge granting
+  - Event count badge criteria
+  - Total points badge criteria
 
-  useEffect(() => {
-    getStudentProgress(studentId).then(setProgress);
-  }, [studentId]);
-
-  if (!progress) return <div>Loading...</div>;
-
-  return (
-    <div className="student-gamification">
-      <h3>Your Learning Progress</h3>
-      <div className="stats">
-        <div className="stat">
-          <span className="label">XP</span>
-          <span className="value">{progress.xp}</span>
-        </div>
-        <div className="stat">
-          <span className="label">Level</span>
-          <span className="value">{progress.level}</span>
-        </div>
-        <div className="stat">
-          <span className="label">Tier</span>
-          <span className="value">{progress.tier}</span>
-        </div>
-      </div>
-      <div className="badges">
-        <h4>Badges Earned ({progress.badges.length})</h4>
-        {progress.badges.map((badge) => (
-          <div key={badge.key} className="badge">
-            {badge.name}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+Run tests:
+```bash
+cd backend
+npm test
 ```
 
-### Example 3: Guild Platform Integration
-
-```typescript
-// nova-agora-guild-platform/src/services/achievements.service.ts
-import axios from 'axios';
-
-const GAMIFICATION_API = 'http://localhost:3000';
-const PROGRAM_KEY = 'guild-achievements';
-
-export class AchievementsService {
-  async trackPostCreated(userId: string, postId: string) {
-    await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-      programKey: PROGRAM_KEY,
-      externalUserId: userId,
-      eventKey: 'post_created',
-      meta: { postId },
-    });
-  }
-
-  async trackCommentAdded(userId: string, commentId: string) {
-    await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-      programKey: PROGRAM_KEY,
-      externalUserId: userId,
-      eventKey: 'comment_added',
-      meta: { commentId },
-    });
-  }
-
-  async trackQuestCompleted(userId: string, questId: string, difficulty: number) {
-    const response = await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-      programKey: PROGRAM_KEY,
-      externalUserId: userId,
-      eventKey: 'quest_completed',
-      meta: {
-        questId,
-        difficulty,
-      },
-    });
-
-    return response.data.result;
-  }
-
-  async trackEventParticipation(userId: string, eventId: string) {
-    await axios.post(`${GAMIFICATION_API}/events/ingest`, {
-      programKey: PROGRAM_KEY,
-      externalUserId: userId,
-      eventKey: 'event_participated',
-      meta: { eventId },
-    });
-  }
-
-  async getMemberRank(userId: string) {
-    const response = await axios.get(
-      `${GAMIFICATION_API}/users/${PROGRAM_KEY}/${userId}`
-    );
-
-    return {
-      honorPoints: response.data.points,
-      rank: response.data.level,
-      prestigeTier: response.data.tier,
-      achievements: response.data.badges,
-    };
-  }
-
-  async getGuildLeaderboard(limit = 50) {
-    const response = await axios.get(
-      `${GAMIFICATION_API}/users/${PROGRAM_KEY}/list?limit=${limit}`
-    );
-
-    return response.data.users;
-  }
-}
+Coverage report:
+```bash
+npm run test:cov
+open coverage/lcov-report/index.html
 ```
 
-## 📊 Admin UI
+## 🌐 API Reference
 
-The admin dashboard (http://localhost:3001) allows you to:
+### Core Endpoints
 
-1. **Manage Programs**
-   - Create new programs for different apps
-   - Configure level thresholds
-   - Set up tier requirements
-
-2. **Define Events**
-   - Create event types (purchase, login, etc.)
-   - Set point rewards
-   - Add multiplier rules
-
-3. **Create Badges**
-   - Design achievement badges
-   - Set unlock criteria
-   - Track badge earnings
-
-4. **View Users**
-   - See all user accounts
-   - Check points, levels, tiers
-   - View earned badges
-
-## 🔧 API Endpoints
-
-### Event Ingestion
-
-```http
+#### Ingest Event
+```
 POST /events/ingest
-Content-Type: application/json
+```
 
+Award points and process user progression.
+
+**Request:**
+```json
 {
-  "programKey": "marketplace-rewards",
+  "programKey": "my-program",
   "externalUserId": "user_123",
   "eventKey": "purchase",
   "meta": {
@@ -443,288 +428,219 @@ Content-Type: application/json
 {
   "success": true,
   "result": {
-    "userAccountId": "clx...",
     "pointsEarned": 15,
     "totalPoints": 165,
-    "previousLevel": 1,
-    "newLevel": 2,
     "leveledUp": true,
-    "previousTier": "bronze",
-    "newTier": "bronze",
+    "newLevel": 3,
     "tierChanged": false,
     "badgesGranted": [
       {
-        "badgeId": "clx...",
-        "badgeKey": "first_purchase",
-        "badgeName": "First Purchase"
+        "badgeKey": "points_100",
+        "badgeName": "100 Points"
       }
     ]
   }
 }
 ```
 
-### Get User Account
-
-```http
-GET /users/{programKey}/{externalUserId}
+#### Get User Account
+```
+GET /users/:programKey/:externalUserId
 ```
 
-**Response:**
-```json
-{
-  "id": "clx...",
-  "externalUserId": "user_123",
-  "points": 165,
-  "level": 2,
-  "tier": "bronze",
-  "badges": [
-    {
-      "key": "first_purchase",
-      "name": "First Purchase",
-      "description": "Made your first purchase",
-      "grantedAt": "2024-01-15T10:30:00Z"
-    }
-  ],
-  "createdAt": "2024-01-10T08:00:00Z",
-  "updatedAt": "2024-01-15T10:30:00Z"
-}
+#### List Users (Leaderboard)
+```
+GET /users/:programKey/list?limit=50&offset=0
 ```
 
-### List Users (Leaderboard)
-
-```http
-GET /users/{programKey}/list?limit=50&offset=0
+#### Get User History
+```
+GET /users/:programKey/:externalUserId/history?limit=50
 ```
 
-### Create Program
+#### Program Management
+```
+GET    /programs
+POST   /programs
+GET    /programs/:key
+PUT    /programs/:key
+GET    /programs/:key/events
+POST   /programs/:key/events
+```
 
-```http
-POST /programs
-Content-Type: application/json
+#### Badge Management
+```
+GET    /badges/:programKey
+POST   /badges/:programKey
+```
 
-{
-  "key": "my-app-rewards",
-  "name": "My App Rewards",
-  "description": "Loyalty program for My App",
-  "config": {
-    "levelThresholds": [
-      { "level": 1, "minPoints": 0 },
-      { "level": 2, "minPoints": 100 },
-      { "level": 3, "minPoints": 250 }
-    ],
-    "tierThresholds": [
-      { "tier": "bronze", "minPoints": 0 },
-      { "tier": "silver", "minPoints": 500 },
-      { "tier": "gold", "minPoints": 1500 }
-    ]
+Full API documentation: http://localhost:3000/api/docs
+
+## 📦 Integration Examples
+
+### Node.js/TypeScript
+
+```typescript
+import axios from 'axios';
+
+const API_URL = 'http://localhost:3000';
+
+// Track a purchase event
+async function trackPurchase(userId: string, amount: number) {
+  const response = await axios.post(`${API_URL}/events/ingest`, {
+    programKey: 'marketplace-rewards',
+    externalUserId: userId,
+    eventKey: 'purchase',
+    meta: { amount },
+  });
+
+  const result = response.data.result;
+
+  // Handle leveling up
+  if (result.leveledUp) {
+    console.log(`User leveled up to level ${result.newLevel}!`);
   }
-}
-```
 
-### Create Event Definition
-
-```http
-POST /programs/{programKey}/events
-Content-Type: application/json
-
-{
-  "key": "purchase",
-  "description": "User made a purchase",
-  "rules": {
-    "basePoints": 10,
-    "multipliers": [
-      {
-        "condition": "amount > 100",
-        "multiplier": 1.5
-      }
-    ]
+  // Handle new badges
+  for (const badge of result.badgesGranted) {
+    console.log(`User earned badge: ${badge.badgeName}`);
   }
+
+  return result;
+}
+
+// Get user stats
+async function getUserStats(userId: string) {
+  const response = await axios.get(
+    `${API_URL}/users/marketplace-rewards/${userId}`
+  );
+  return response.data.data;
 }
 ```
 
-### Create Badge Definition
+### React Component
 
-```http
-POST /badges/{programKey}
-Content-Type: application/json
+```typescript
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 
-{
-  "key": "super_shopper",
-  "name": "Super Shopper",
-  "description": "Made 10 purchases",
-  "criteria": {
-    "type": "event_count",
-    "eventKey": "purchase",
-    "count": 10
-  }
+export function UserLoyaltyCard({ userId }: { userId: string }) {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    axios.get(`http://localhost:3000/users/demo-rewards/${userId}`)
+      .then(res => setStats(res.data.data));
+  }, [userId]);
+
+  if (!stats) return <div>Loading...</div>;
+
+  return (
+    <div className="loyalty-card">
+      <h3>Your Rewards</h3>
+      <div className="stats">
+        <div>Points: {stats.points}</div>
+        <div>Level: {stats.level}</div>
+        <div>Tier: {stats.tier}</div>
+      </div>
+      <div className="badges">
+        <h4>Badges ({stats.badges.length})</h4>
+        {stats.badges.map(badge => (
+          <div key={badge.key}>{badge.name}</div>
+        ))}
+      </div>
+    </div>
+  );
 }
 ```
 
-## 🧪 Testing
+See `/examples/integration-example.ts` for more detailed examples.
 
-Example test script:
+## 🚢 Production Deployment
 
-```bash
-cd backend
+### Environment Variables
 
-# Create a test program
-curl -X POST http://localhost:3000/programs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "key": "test-program",
-    "name": "Test Program",
-    "description": "Testing the engine"
-  }'
-
-# Create an event definition
-curl -X POST http://localhost:3000/programs/test-program/events \
-  -H "Content-Type: application/json" \
-  -d '{
-    "key": "test_action",
-    "description": "Test action",
-    "rules": { "basePoints": 20 }
-  }'
-
-# Ingest an event for a user
-curl -X POST http://localhost:3000/events/ingest \
-  -H "Content-Type: application/json" \
-  -d '{
-    "programKey": "test-program",
-    "externalUserId": "test_user_1",
-    "eventKey": "test_action",
-    "meta": {}
-  }'
-
-# Get user stats
-curl http://localhost:3000/users/test-program/test_user_1
-```
-
-## 🗄️ Database Schema
-
-```prisma
-model Program {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  name        String
-  description String?
-  configJson  Json     // Level/tier thresholds
-}
-
-model UserAccount {
-  id             String   @id @default(cuid())
-  externalUserId String
-  programId      String
-  points         Int      @default(0)
-  level          Int      @default(1)
-  tier           String   @default("bronze")
-  metaJson       Json     @default("{}")
-}
-
-model EventDefinition {
-  id          String   @id @default(cuid())
-  programId   String
-  key         String
-  description String?
-  rulesJson   Json     // Points rules
-}
-
-model EarnEvent {
-  id            String   @id @default(cuid())
-  programId     String
-  userAccountId String
-  eventKey      String
-  pointsDelta   Int
-  metaJson      Json
-  createdAt     DateTime @default(now())
-}
-
-model BadgeDefinition {
-  id           String   @id @default(cuid())
-  programId    String
-  key          String
-  name         String
-  description  String?
-  criteriaJson Json     // Unlock criteria
-}
-
-model UserBadge {
-  id            String   @id @default(cuid())
-  userAccountId String
-  badgeId       String
-  grantedAt     DateTime @default(now())
-}
-```
-
-## 🎯 Use Cases
-
-### E-Commerce / Marketplace
-- Points for purchases
-- Badges for review milestones
-- VIP tiers with benefits
-- Referral rewards
-
-### Learning Platforms
-- XP for course completion
-- Achievement badges
-- Streak tracking
-- Leaderboards
-
-### Community / Social
-- Karma points
-- Contributor badges
-- Reputation levels
-- Quest completion
-
-### SaaS Products
-- Usage rewards
-- Feature unlocks
-- Engagement tracking
-- Advocacy programs
-
-## 🚀 Production Deployment
-
-1. **Environment Variables:**
-
-```bash
-# Backend (.env)
-DATABASE_URL="postgresql://user:pass@host:5432/db"
-REDIS_HOST=redis-host
+**Backend (.env):**
+```env
+DATABASE_URL="postgresql://user:pass@host:5432/db?schema=public"
+REDIS_HOST=redis.example.com
 REDIS_PORT=6379
 PORT=3000
 NODE_ENV=production
-
-# Admin (.env.local)
-NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+ADMIN_URL=https://admin.example.com
 ```
 
-2. **Build & Deploy:**
+**Admin (.env.local):**
+```env
+NEXT_PUBLIC_API_URL=https://api.example.com
+```
+
+### Docker Deployment
 
 ```bash
-# Build backend
-cd backend
-npm run build
-npm run start:prod
+# Build images
+docker-compose build
 
-# Build admin UI
-cd admin
-npm run build
-npm run start
+# Start services
+docker-compose up -d
+
+# Run migrations
+docker exec gamification-backend npx prisma migrate deploy
+
+# Seed initial data (optional)
+docker exec gamification-backend npm run db:seed
 ```
 
-3. **Infrastructure:**
-- Host backend on any Node.js platform (Heroku, AWS, DigitalOcean, etc.)
-- Deploy admin UI to Vercel, Netlify, or similar
-- Use managed PostgreSQL (AWS RDS, Heroku Postgres, etc.)
-- Use managed Redis (AWS ElastiCache, Redis Cloud, etc.)
+### Manual Deployment
 
-## 📝 License
+1. **Build Backend:**
+```bash
+cd backend
+npm run build
+```
+
+2. **Build Admin:**
+```bash
+cd admin
+npm run build
+```
+
+3. **Deploy to hosting:**
+   - Backend: Node.js platform (AWS ECS, DigitalOcean Apps, Railway, etc.)
+   - Admin: Static hosting or Node.js (Vercel, Netlify, etc.)
+   - Database: Managed PostgreSQL (AWS RDS, DigitalOcean, Supabase, etc.)
+   - Cache: Managed Redis (AWS ElastiCache, Redis Cloud, Upstash, etc.)
+
+## 🔮 Future Extensions
+
+### Short Term
+- [ ] Webhook notifications for level-ups and badge grants
+- [ ] Streak tracking (consecutive days)
+- [ ] Point expiration rules
+- [ ] Badge images/icons support
+- [ ] Leaderboard with time ranges (daily/weekly/monthly)
+
+### Medium Term
+- [ ] GraphQL API alongside REST
+- [ ] Challenge system (time-limited goals)
+- [ ] Team/group competitions
+- [ ] Point redemption/rewards catalog
+- [ ] Analytics dashboard
+
+### Long Term
+- [ ] AI-powered personalized challenges
+- [ ] Social features (share badges, compete with friends)
+- [ ] Mobile SDK (iOS/Android)
+- [ ] Real-time websocket updates
+- [ ] Multi-language support
+
+## 📄 License
 
 MIT
 
 ## 🤝 Contributing
 
-Contributions welcome! Please open an issue or PR.
+Contributions are welcome! Please open an issue or PR.
 
 ---
 
-**Built with:** NestJS, Prisma, PostgreSQL, Redis, Next.js, TypeScript
+**Built with:** NestJS • Prisma • PostgreSQL • Redis • Next.js • TypeScript • Docker

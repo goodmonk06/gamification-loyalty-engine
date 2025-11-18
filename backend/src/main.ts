@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +13,12 @@ async function bootstrap() {
     origin: ['http://localhost:3001', process.env.ADMIN_URL || '*'],
     credentials: true,
   });
+
+  // Global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Global response transformer
+  app.useGlobalInterceptors(new TransformInterceptor());
 
   // Global validation pipe
   app.useGlobalPipes(
