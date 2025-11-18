@@ -1,0 +1,125 @@
+// Prisma schema for Gamification & Loyalty Engine
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A gamification program (e.g., "Marketplace Rewards", "Learning Camp XP")
+model Program {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g., "marketplace-rewards"
+  name        String
+  description String?
+  configJson  Json     @default("{}") // General settings: level thresholds, tier definitions, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userAccounts     UserAccount[]
+  eventDefinitions EventDefinition[]
+  badgeDefinitions BadgeDefinition[]
+  earnEvents       EarnEvent[]
+
+  @@index([key])
+}
+
+// User account within a specific program
+model UserAccount {
+  id             String   @id @default(cuid())
+  externalUserId String // ID from the external app (e.g., user ID from marketplace)
+  programId      String
+  points         Int      @default(0)
+  level          Int      @default(1)
+  tier           String   @default("bronze") // e.g., "bronze", "silver", "gold", "platinum"
+  metaJson       Json     @default("{}") // Additional metadata
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  program    Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  earnEvents EarnEvent[]
+  badges     UserBadge[]
+
+  @@unique([programId, externalUserId])
+  @@index([programId])
+  @@index([externalUserId])
+}
+
+// Definition of an event type that can earn points/badges
+model EventDefinition {
+  id          String   @id @default(cuid())
+  programId   String
+  key         String // e.g., "purchase_complete", "course_completed"
+  description String?
+  rulesJson   Json     @default("{}") // Rules: points to award, conditions, badge triggers
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, key])
+  @@index([programId])
+}
+
+// Record of a user earning points from an event
+model EarnEvent {
+  id              String   @id @default(cuid())
+  programId       String
+  userAccountId   String
+  eventKey        String // Which event occurred
+  pointsDelta     Int // Points earned (can be negative for penalties)
+  metaJson        Json     @default("{}") // Event-specific data
+  createdAt       DateTime @default(now())
+
+  // Relations
+  program     Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  userAccount UserAccount @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([userAccountId])
+  @@index([eventKey])
+  @@index([createdAt])
+}
+
+// Definition of a badge
+model BadgeDefinition {
+  id           String   @id @default(cuid())
+  programId    String
+  key          String // e.g., "first_purchase", "10k_points"
+  name         String
+  description  String?
+  imageUrl     String? // URL to badge image
+  criteriaJson Json     @default("{}") // Criteria for earning: { type: "event_count", eventKey: "purchase", count: 1 }
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  program    Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  userBadges UserBadge[]
+
+  @@unique([programId, key])
+  @@index([programId])
+}
+
+// User's earned badges
+model UserBadge {
+  id            String   @id @default(cuid())
+  userAccountId String
+  badgeId       String
+  grantedAt     DateTime @default(now())
+  metaJson      Json     @default("{}") // Additional context about earning
+
+  // Relations
+  userAccount UserAccount     @relation(fields: [userAccountId], references: [id], onDelete: Cascade)
+  badge       BadgeDefinition @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userAccountId, badgeId]) // A user can only earn each badge once
+  @@index([userAccountId])
+  @@index([badgeId])
+}

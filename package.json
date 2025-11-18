@@ -1,0 +1,29 @@
+{
+  "name": "gamification-loyalty-engine",
+  "version": "1.0.0",
+  "description": "A central gamification & loyalty engine that any app can integrate",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "admin"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:admin": "npm run dev --workspace=admin",
+    "build:backend": "npm run build --workspace=backend",
+    "build:admin": "npm run build --workspace=admin",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "prisma:migrate": "npm run prisma:migrate --workspace=backend",
+    "prisma:studio": "npm run prisma:studio --workspace=backend"
+  },
+  "keywords": [
+    "gamification",
+    "loyalty",
+    "points",
+    "badges",
+    "levels"
+  ],
+  "author": "",
+  "license": "MIT"
+}
